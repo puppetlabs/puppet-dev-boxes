@@ -32,3 +32,7 @@ Follow [this great guide](https://medium.com/@lopezgand/connect-visual-studio-co
 
 * [Beginners guide to Pry](https://medium.com/@eddgr/the-absolute-beginners-guide-to-using-pry-in-ruby-b08681558fa6)
 * [Pry cheat sheet](https://gist.github.com/lfender6445/9919357)
+
+### Contributors
+
+A massive shout to the original author of this repo, [chelnak](https://github.com/chelnak/).
