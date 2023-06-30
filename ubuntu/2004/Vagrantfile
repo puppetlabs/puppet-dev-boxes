@@ -1,0 +1,103 @@
+# frozen_string_literal: true
+
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure('2') do |config|
+  config.vm.box = 'generic/ubuntu2004'
+
+  config.vm.provider :virtualbox do |vb|
+    vb.memory = 8192
+    vb.cpus = 4
+  end
+
+  config.vm.synced_folder '.', '/vagrant'
+
+  config.vm.provision 'file', source: '~/.gitconfig', destination: '~/.gitconfig'
+  config.vm.provision 'file', source: '~/.gnupg/private-keys-v1.d', destination: '~/.gnupg/private-keys-v1.d'
+  config.vm.provision 'file', source: '~/.gnupg/pubring.kbx', destination: '~/.gnupg/pubring.kbx'
+  config.vm.provision 'file', source: '~/.gnupg/trustdb.gpg', destination: '~/.gnupg/trustdb.gpg'
+
+  config.vm.provision 'shell', privileged: false, inline: <<~SHELL
+    # APT Packages
+    export DEBIAN_FRONTEND=noninteractive
+
+    sudo apt-get update
+    sudo apt-get -y install ca-certificates \
+      libssl-dev \
+      libreadline-dev \
+      zlib1g-dev \
+      autoconf \
+      bison \
+      build-essential \
+      libyaml-dev \
+      libreadline-dev \
+      libncurses5-dev \
+      libffi-dev \
+      libgdbm-dev \
+      ruby-dev
+
+    # Brew Packages
+    curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh | bash
+    echo 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' >> ~/.profile
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+    brew install starship \
+      gh \
+      rbenv \
+      git \
+      curl
+
+    # Configure starship
+    echo 'eval "$(starship init bash)"' >> ~/.profile
+
+    # Compile OpenSSL
+    # This isn't great but it seems like older versions of ruby
+    # no longer work with newer versions of OpenSSL
+    # To work around this we compile OpenSSL from source and pass it to RUBY_CONFIGURE_OPTS
+    # This blog was helpful: https://deanpcmad.com/2022/installing-older-ruby-versions-on-ubuntu-22-04/
+    wget https://www.openssl.org/source/openssl-1.1.1g.tar.gz
+    tar zxvf openssl-1.1.1g.tar.gz
+    cd openssl-1.1.1g && ./config --prefix=$HOME/.openssl/openssl-1.1.1g && make && sudo make install && cd -
+    rm -rf ~/.openssl/openssl-1.1.1g/certs
+    sudo ln -s /etc/ssl/certs ~/.openssl/openssl-1.1.1g/certs
+
+    # Setup Ruby
+    RUBY_CONFIGURE_OPTS=--with-openssl-dir=$HOME/.openssl/openssl-1.1.1g rbenv install 2.7.6
+    rbenv global 2.7.6
+    ruby -v
+
+    git clone https://github.com/dcarley/rbenv-sudo.git ~/.rbenv/plugins/rbenv-sudo
+
+    echo 'export GEM_HOME=$(ruby -e "puts Gem.user_dir")' >> ~/.profile
+    echo 'export PATH="$PATH:$GEM_HOME/bin"' >> ~/.profile
+
+    source ~/.profile
+
+    # Install Ruby Gems
+    echo "gem: --no-document" > ~/.gemrc
+
+    gem install solargraph --user-install
+    gem install bundler --user-install
+    gem install rubocop --user-install
+    gem install rubocop-performance --user-install
+    gem install rubocop-rspec --user-install
+    gem install fuubar --user-install
+    gem install pry-byebug --user-install
+    gem install pry-stack_explorer --user-install
+
+    rbenv rehash
+
+    bundle config set --global path './.bundle/gems'
+    rbenv sudo bundle config set --global path './.bundle/gems'
+
+    cat << 'EOF' >> ~/.profile
+    function puppet-apply() {
+      rbenv sudo bundle exec puppet apply $@ --modulepath spec/fixtures/modules
+    }
+    EOF
+
+    echo "Box bootstrapped! You can now run 'vagrant ssh'"
+    echo "Once logged in, run 'gh auth login' and set up your git credentials."
+  SHELL
+end

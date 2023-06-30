@@ -1,0 +1,55 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+VAGRANTFILE_API_VERSION = "2"
+
+VM_BOX="mwrock/Windows2012R2"
+
+# IP address Information
+STATICIP="x.x.x.x"
+SUBNETMASK="y.y.y.y"
+ROUTER="z.z.z.z"
+
+# Vagrant will need 2 interfaces, one for NAT (needed for provision) and one for static public IP
+STATICIP_INTERFACE="Ethernet 2"
+NAT_INTERFACE="Ethernet"
+
+# Remote RDP Port
+GUEST_RDP_PORT="3389"
+REMOTE_RDP_PORT="33389"
+AUTO_CORRECT="true"
+
+# WinRM Credentials (not for setting Windows password!)
+WINRM_USER="vagrant"
+WINRM_PASSWORD="vagrant"
+
+# Memory and CPUs
+MEMORYMB=4096
+CPUS=2
+
+def gui_enabled?
+  !ENV.fetch('GUI', '').empty?
+end
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+
+  config.vm.provision "Gateway", type: "shell", run: "always", inline: <<-POWERSHELL
+    New-NetRoute -InterfaceAlias "#{STATICIP_INTERFACE}" -NextHop "#{ROUTER}" -DestinationPrefix "0.0.0.0/0"
+    Set-NetIPInterface -InterfaceAlias "#{NAT_INTERFACE}" -InterfaceMetric 5000
+    Set-NetIPInterface -InterfaceAlias "#{STATICIP_INTERFACE}" -InterfaceMetric 1
+  POWERSHELL
+
+  config.vm.network "public_network", bridge: "eth0", ip: STATICIP, netmask: SUBNETMASK
+  config.vm.network :forwarded_port, guest: GUEST_RDP_PORT, host: REMOTE_RDP_PORT, auto_correct: AUTO_CORRECT
+  config.vm.box = VM_BOX
+  # Change "." to a local folder you want to sync
+  # config.vm.synced_folder ".", "/chocolateypackages", disabled: true
+  config.vm.guest = :windows
+  config.vm.communicator = "winrm"
+  config.winrm.username = WINRM_USER
+  config.winrm.password = WINRM_PASSWORD
+  config.vm.provider 'virtualbox' do |v|
+    v.gui = gui_enabled?
+    v.memory = MEMORYMB
+    v.cpus = CPUS
+  end
+end
