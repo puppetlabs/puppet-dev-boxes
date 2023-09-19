@@ -1,5 +1,7 @@
 # Puppet development boxes
 
+[![Code Owners](https://img.shields.io/badge/owners-DevX--team-blue)](https://github.com/puppetlabs/pdk/blob/main/CODEOWNERS)
+
 A collection of vagrant boxes & guides that will level up your Puppet module development.
 
 ## Development guides
