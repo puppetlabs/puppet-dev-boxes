@@ -15,7 +15,8 @@ Function New-LocalGemfile {
     [IO.File]::WriteAllLines($Path, $Gems)
 }
 
-Set-Item -Path Env:\PDK_PUPPET_VERSION -Value '7.16.0'
+# The following line should be updated so that the PDK_PUPPET_VERSION value matches the latest Puppet version bundled with PDK
+Set-Item -Path Env:\PDK_PUPPET_VERSION -Value '7.28.0'
 Set-Item -Path Env:\PATH -Value "$ENV:PATH;C:\Program Files\Git\cmd"
 Import-Module posh-git
 Set-Location -Path $env:userprofile\code
