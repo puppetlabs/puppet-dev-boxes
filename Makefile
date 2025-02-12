@@ -4,11 +4,11 @@ endif
 
 .DEFAULT_GOAL := help
 
-log_error = (>&2 echo "\x1B[31m>> Error:$1\x1B[39m\n" && $(MAKE) help && exit 1)
+log_error = (>&2 echo "\x1B[31m>> Error:$1\x1B[39m\n"; $(MAKE) help; exit 1)
 
 .PHONY: help
 help:
-	@echo "Usage: make [os] [version] [command]"
+	@echo "Usage: make (provisioner) [os] [version] [command]"
 	@echo "\n"
 	@echo "Examples:"
 	@echo "  make ubuntu 2004 up"
@@ -16,6 +16,10 @@ help:
 	@echo "  make ubuntu 2004 suspend"
 	@echo "  make windows server-2019 destroy"
 	@echo "  make windows server-2019 rdp"
+	@echo "  make pooler windows server-2022 up"
+	@echo " "
+	@echo " provisioner (optional) pooler | vagrant"
+	@echo " defaults to vagrant"
 	@echo "\n"
 
 
@@ -53,35 +57,58 @@ ubuntu:
 
 .PHONY: up
 up:
+	@[ "${PROVISIONER}" ] 
 	@[ "${PLAT}" ] || $(call log_error, "Operating System is not defined")
 	@[ "${VERSION}" ] || $(call log_error, "Version is not defined")
 
-	@VAGRANT_CWD=${PLAT}/${VERSION} vagrant up
+	if [ "${PROVISIONER}" = "pooler" ]; then \
+		${PLAT}/${PROVISIONER}/provision.sh ${VERSION}; \
+	else \
+		@VAGRANT_CWD=${PLAT}/${VERSION} vagrant up; \
+	fi
 
 .PHONY: destroy
 destroy:
 	@[ "${PLAT}" ] || $(call log_error, "Operating System is not defined")
 	@[ "${VERSION}" ] || $(call log_error, "Version is not defined")
 
-	@VAGRANT_CWD=${PLAT}/${VERSION} vagrant destroy -f
+	@VAGRANT_CWD=${PLAT}/${VERSION} vagrant destroy -f 
 
 .PHONY: ssh
 ssh:
+	@[ "${PROVISIONER}" ] 
 	@[ "${PLAT}" ] || $(call log_error, "Operating System is not defined")
 	@[ "${VERSION}" ] || $(call log_error, "Version is not defined")
 
-	@VAGRANT_CWD=${PLAT}/${VERSION} vagrant ssh
+	if [ "${PROVISIONER}" = "pooler" ]; then \
+		${PLAT}/${PROVISIONER}/ssh.sh ${VERSION}; \
+	else \
+		@VAGRANT_CWD=${PLAT}/${VERSION} vagrant ssh \
+	fi
 
 .PHONY: rdp
 rdp:
+	@[ "${PROVISIONER}" ] 
 	@[ "${PLAT}" ] || $(call log_error, "Operating System is not defined")
 	@[ "${VERSION}" ] || $(call log_error, "Version is not defined")
 
-	@VAGRANT_CWD=${PLAT}/${VERSION} vagrant rdp
+	if [ "${PROVISIONER}" = "pooler" ]; then \
+		${PLAT}/${PROVISIONER}/rdp.sh ${VERSION}; \
+	else \
+		@VAGRANT_CWD=${PLAT}/${VERSION} vagrant rdp \
+	fi
 
 .PHONY: suspend
 suspend:
+	@[ "${PROVISIONER}" ] 
 	@[ "${PLAT}" ] || $(call log_error, "Operating System is not defined")
 	@[ "${VERSION}" ] || $(call log_error, "Version is not defined")
 
 	@VAGRANT_CWD=${PLAT}/${VERSION} vagrant suspend
+
+
+# ============= VMPooler ============= #
+.PHONY: pooler
+pooler:
+	$(eval PROVISIONER=pooler)
+

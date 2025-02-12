@@ -3,7 +3,7 @@
 plan bootstrap (
   TargetSpec $targets = 'localhost'
 ) {
-  $targets.apply_prep
+  apply_prep($targets)
 
   $apply_result = apply($targets, _catch_errors => true) {
     $tools_dir = 'C:\tools'
@@ -89,47 +89,6 @@ plan bootstrap (
       }
     }
 
-    $system_gems = [
-      {
-        name => 'solargraph',
-      },
-      {
-        name => 'bundler',
-      },
-      {
-        name => 'rubocop',
-      },
-      {
-        name => 'rubocop-performance',
-      },
-      {
-        name => 'rubocop-rspec',
-      },
-      {
-        name => 'fuubar',
-      },
-      {
-        name => 'pry-byebug',
-      },
-      {
-        name => 'pry-stack_explorer',
-      },
-    ]
-
-    $system_gems.each |$gem| {
-      exec { "Install ${gem['name']}":
-        command => "gem install ${gem['name']} --user-install",
-        provider => powershell,
-        require => Package['Install Ruby'],
-      }
-    }
-
-    exec { 'Configure Bundle Path':
-      command => "bundle config set --global path './.bundle'",
-      provider => powershell,
-      require => Package['Install Ruby'],
-    }
-
     $powershell_modules = [
       'PSReadline',
       'posh-git',
@@ -148,7 +107,7 @@ plan bootstrap (
     }
 
     exec { 'Set Git Path':
-      command  => '[Environment]::SetEnvironmentVariable("Path", $ENV:Path + ";C:\Program Files\Git\cmd", [EnvironmentVariableTarget]::Machine)',
+      command  => '[Environment]::SetEnvironmentVariable("Path", $ENV:Path + ";C:\Program Files\Git\cmd", [EnvironmentVariableTarget]::Machine)', # lint:ignore:140chars
       provider => powershell,
       require  => Package['Install Git'],
     }
@@ -187,7 +146,57 @@ plan bootstrap (
       type   => 'dword',
       data   => 0,
     }
- }
+
+    $system_gems = [
+      {
+        name => 'hocon'
+      },
+      {
+        name => 'thor'
+      },
+      {
+        name => 'facter',
+      },
+      {
+        name => 'solargraph',
+      },
+      {
+        name => 'bundler',
+      },
+      {
+        name => 'rubocop',
+      },
+      {
+        name => 'rubocop-performance',
+      },
+      {
+        name => 'rubocop-rspec',
+      },
+      {
+        name => 'fuubar',
+      },
+      {
+        name => 'pry-byebug',
+      },
+      {
+        name => 'pry-stack_explorer',
+      },
+    ]
+
+    $system_gems.each |$gem| {
+      exec { "Install ${gem['name']}":
+        command  => "gem install ${gem['name']} --user-install",
+        provider => powershell,
+        require  => Package['Install Ruby'],
+      }
+    }
+
+    exec { 'Configure Bundle Path':
+      command  => "bundle config set --global path './.bundle'",
+      provider => powershell,
+      require  => Package['Install Ruby'],
+    }
+  }
 
   run_plan('reboot', $targets)
 

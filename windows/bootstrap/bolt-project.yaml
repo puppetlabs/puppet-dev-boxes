@@ -7,3 +7,4 @@ modules:
   version_requirement: 4.1.1
 - name: puppetlabs-reboot
   version_requirement: 4.3.0
+- puppetlabs/puppet_agent
